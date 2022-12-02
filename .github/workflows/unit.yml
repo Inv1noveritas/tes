@@ -1,17 +1,36 @@
-name: dotnet package
+name: Build and Tests
 
-on: [push]
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+      branches: [ master ]
 
 jobs:
   build:
-
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v3
-      - name: Setup .NET Core SDK
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: 14.0.x
-      - name: Generate coverage report
-        run: dotnet test ./transport/NunitMain
+    - uses: actions/checkout@v2
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1
+
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v1.0.5
+
+    - name: Setup VSTest
+      uses: darenm/Setup-VSTest@v1
+
+    - name: Navigate to Workspace
+      run: cd $GITHUB_WORKSPACE
+
+    - name: Restore Packages
+      run: nuget restore transport\transport.sln
+
+    - name: Build Solution
+      run: |
+        msbuild.exe transport.sln /p:platform="Any CPU" /p:configuration="Release"
+
+    - name: Run Tests
+      run: vstest.console.exe .\transport\NunitMain\bin\Debug\netcoreapp3.1\NUnit3.TestAdapter.dll
